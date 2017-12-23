@@ -18,6 +18,7 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
+import net.ypresto.androidtranscoder.compat.MediaCodecListCompat;
 
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
 
@@ -60,10 +61,11 @@ public class VideoTrackTranscoder implements TrackTranscoder {
 
     @Override
     public void setup() {
+        MediaCodecListCompat codecs = new MediaCodecListCompat(MediaCodecListCompat.REGULAR_CODECS);
         mExtractor.selectTrack(mTrackIndex);
         try {
-            mEncoder = MediaCodec.createEncoderByType(mOutputFormat.getString(MediaFormat.KEY_MIME));
-        } catch (IOException e) {
+            mEncoder = MediaCodec.createByCodecName(codecs.findEncoderForFormat(mOutputFormat));
+        } catch (IOException | IllegalArgumentException e) {
             throw new IllegalStateException(e);
         }
         mEncoder.configure(mOutputFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
@@ -82,8 +84,8 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         }
         mDecoderOutputSurfaceWrapper = new OutputSurface();
         try {
-            mDecoder = MediaCodec.createDecoderByType(inputFormat.getString(MediaFormat.KEY_MIME));
-        } catch (IOException e) {
+            mDecoder = MediaCodec.createByCodecName(codecs.findDecoderForFormat(inputFormat));
+        } catch (IOException | IllegalArgumentException e) {
             throw new IllegalStateException(e);
         }
         mDecoder.configure(inputFormat, mDecoderOutputSurfaceWrapper.getSurface(), null, 0);
