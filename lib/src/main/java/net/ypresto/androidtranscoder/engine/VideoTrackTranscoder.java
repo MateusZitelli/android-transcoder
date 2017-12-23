@@ -18,8 +18,8 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
-import net.ypresto.androidtranscoder.compat.MediaCodecListCompat;
 
+import net.ypresto.androidtranscoder.compat.MediaCodecListCompat;
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
 
 import java.io.IOException;
@@ -42,7 +42,8 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private ByteBuffer[] mDecoderInputBuffers;
     private ByteBuffer[] mEncoderOutputBuffers;
     private MediaFormat mActualOutputFormat;
-    private OutputSurface mDecoderOutputSurfaceWrapper;
+    private OutputSurfaceFactory mDecoderOutputSurfaceFactory;
+    private OutputSurface mEncoderOutputSurfaceWrapper;
     private InputSurface mEncoderInputSurfaceWrapper;
     private boolean mIsExtractorEOS;
     private boolean mIsDecoderEOS;
@@ -52,11 +53,13 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private long mWrittenPresentationTimeUs;
 
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
-                                MediaFormat outputFormat, QueuedMuxer muxer) {
+                                MediaFormat outputFormat, QueuedMuxer muxer,
+                                OutputSurfaceFactory outputSurfaceFactory) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
         mMuxer = muxer;
+        mDecoderOutputSurfaceFactory = outputSurfaceFactory;
     }
 
     @Override
@@ -74,6 +77,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mEncoder.start();
         mEncoderStarted = true;
         mEncoderOutputBuffers = mEncoder.getOutputBuffers();
+        mEncoderOutputSurfaceWrapper = mDecoderOutputSurfaceFactory.createOutputSurface();
 
         MediaFormat inputFormat = mExtractor.getTrackFormat(mTrackIndex);
         if (inputFormat.containsKey(MediaFormatExtraConstants.KEY_ROTATION_DEGREES)) {
@@ -82,13 +86,13 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             // refer: https://android.googlesource.com/platform/frameworks/av/+blame/lollipop-release/media/libstagefright/Utils.cpp
             inputFormat.setInteger(MediaFormatExtraConstants.KEY_ROTATION_DEGREES, 0);
         }
-        mDecoderOutputSurfaceWrapper = new OutputSurface();
+
         try {
             mDecoder = MediaCodec.createByCodecName(codecs.findDecoderForFormat(inputFormat));
         } catch (IOException | IllegalArgumentException e) {
             throw new IllegalStateException(e);
         }
-        mDecoder.configure(inputFormat, mDecoderOutputSurfaceWrapper.getSurface(), null, 0);
+        mDecoder.configure(inputFormat, mEncoderOutputSurfaceWrapper.getSurface(), null, 0);
         mDecoder.start();
         mDecoderStarted = true;
         mDecoderInputBuffers = mDecoder.getInputBuffers();
@@ -128,9 +132,9 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     // TODO: CloseGuard
     @Override
     public void release() {
-        if (mDecoderOutputSurfaceWrapper != null) {
-            mDecoderOutputSurfaceWrapper.release();
-            mDecoderOutputSurfaceWrapper = null;
+        if (mDecoderOutputSurfaceFactory != null) {
+            mEncoderOutputSurfaceWrapper.release();
+            mDecoderOutputSurfaceFactory = null;
         }
         if (mEncoderInputSurfaceWrapper != null) {
             mEncoderInputSurfaceWrapper.release();
@@ -188,8 +192,8 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
         if (doRender) {
-            mDecoderOutputSurfaceWrapper.awaitNewImage();
-            mDecoderOutputSurfaceWrapper.drawImage();
+            mEncoderOutputSurfaceWrapper.awaitNewImage();
+            mEncoderOutputSurfaceWrapper.drawImage();
             mEncoderInputSurfaceWrapper.setPresentationTime(mBufferInfo.presentationTimeUs * 1000);
             mEncoderInputSurfaceWrapper.swapBuffers();
         }

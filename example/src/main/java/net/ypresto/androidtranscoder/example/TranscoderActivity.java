@@ -11,12 +11,16 @@ import android.support.v4.content.FileProvider;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Surface;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import net.ypresto.androidtranscoder.MediaTranscoder;
+import net.ypresto.androidtranscoder.engine.OutputSurface;
+import net.ypresto.androidtranscoder.engine.OutputSurfaceFactory;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
+import net.ypresto.androidtranscoder.engine.OutputSurfaceImpl;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -112,7 +116,13 @@ public class TranscoderActivity extends Activity {
                     };
                     Log.d(TAG, "transcoding into " + file);
                     mFuture = MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
-                            MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
+                            MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1),
+                            new OutputSurfaceFactory() {
+                                @Override
+                                public OutputSurface createOutputSurface() {
+                                    return new OutputSurfaceImpl();
+                                }
+                            }, listener);
                     switchButtonEnabled(true);
                 }
                 break;
