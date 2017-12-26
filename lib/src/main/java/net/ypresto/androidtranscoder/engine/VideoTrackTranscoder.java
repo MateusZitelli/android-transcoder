@@ -51,15 +51,18 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private boolean mDecoderStarted;
     private boolean mEncoderStarted;
     private long mWrittenPresentationTimeUs;
+    private double mPlaybackRate;
 
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
                                 MediaFormat outputFormat, QueuedMuxer muxer,
-                                OutputSurfaceFactory outputSurfaceFactory) {
+                                OutputSurfaceFactory outputSurfaceFactory,
+                                double playbackRate) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
         mMuxer = muxer;
         mDecoderOutputSurfaceFactory = outputSurfaceFactory;
+        mPlaybackRate = playbackRate;
     }
 
     @Override
@@ -173,6 +176,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     }
 
     private int drainDecoder(long timeoutUs) {
+        float roundedPlaybackRate;
         if (mIsDecoderEOS) return DRAIN_STATE_NONE;
         int result = mDecoder.dequeueOutputBuffer(mBufferInfo, timeoutUs);
         switch (result) {
@@ -192,9 +196,15 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
         if (doRender) {
+            if(mPlaybackRate >= 1) {
+                roundedPlaybackRate = Math.round(mPlaybackRate);
+            }else{
+                roundedPlaybackRate = 1;
+            }
+            int timeCorrectionFactor = Math.round(1000 / roundedPlaybackRate);
             mEncoderOutputSurfaceWrapper.awaitNewImage();
             mEncoderOutputSurfaceWrapper.drawImage();
-            mEncoderInputSurfaceWrapper.setPresentationTime(mBufferInfo.presentationTimeUs * 1000);
+            mEncoderInputSurfaceWrapper.setPresentationTime(mBufferInfo.presentationTimeUs * timeCorrectionFactor);
             mEncoderInputSurfaceWrapper.swapBuffers();
         }
         return DRAIN_STATE_CONSUMED;

@@ -11,7 +11,6 @@ import android.support.v4.content.FileProvider;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.Surface;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -19,8 +18,8 @@ import android.widget.Toast;
 import net.ypresto.androidtranscoder.MediaTranscoder;
 import net.ypresto.androidtranscoder.engine.OutputSurface;
 import net.ypresto.androidtranscoder.engine.OutputSurfaceFactory;
-import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 import net.ypresto.androidtranscoder.engine.OutputSurfaceImpl;
+import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -122,7 +121,7 @@ public class TranscoderActivity extends Activity {
                                 public OutputSurface createOutputSurface() {
                                     return new OutputSurfaceImpl();
                                 }
-                            }, listener);
+                            }, 2.0, listener);
                     switchButtonEnabled(true);
                 }
                 break;

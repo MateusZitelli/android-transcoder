@@ -72,10 +72,10 @@ public class MediaTranscoder {
      * @param inFileDescriptor FileDescriptor for input.
      * @param outPath          File path for output.
      * @param listener         Listener instance for callback.
-     * @deprecated Use {@link #transcodeVideo(FileDescriptor, String, MediaFormatStrategy, OutputSurfaceFactory, MediaTranscoder.Listener)} which accepts output video format.
+     * @deprecated Use {@link #transcodeVideo(FileDescriptor, String, MediaFormatStrategy, OutputSurfaceFactory, double, MediaTranscoder.Listener)} which accepts output video format.
      */
     @Deprecated
-    public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final OutputSurfaceFactory outputSurfaceFactory, final Listener listener) {
+    public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final OutputSurfaceFactory outputSurfaceFactory, final double playbackSpeed, final Listener listener) {
         return transcodeVideo(inFileDescriptor, outPath, new MediaFormatStrategy() {
             @Override
             public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
@@ -86,7 +86,7 @@ public class MediaTranscoder {
             public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
                 return null;
             }
-        }, outputSurfaceFactory , listener);
+        }, outputSurfaceFactory, playbackSpeed, listener);
     }
 
     /**
@@ -99,7 +99,7 @@ public class MediaTranscoder {
      * @param listener          Listener instance for callback.
      * @throws IOException if input file could not be read.
      */
-    public Future<Void> transcodeVideo(final String inPath, final String outPath, final MediaFormatStrategy outFormatStrategy, final OutputSurfaceFactory outputSurfaceFactory, final Listener listener) throws IOException {
+    public Future<Void> transcodeVideo(final String inPath, final String outPath, final MediaFormatStrategy outFormatStrategy, final OutputSurfaceFactory outputSurfaceFactory, final double playbackSpeed, final Listener listener) throws IOException {
         FileInputStream fileInputStream = null;
         FileDescriptor inFileDescriptor;
         try {
@@ -116,7 +116,7 @@ public class MediaTranscoder {
             throw e;
         }
         final FileInputStream finalFileInputStream = fileInputStream;
-        return transcodeVideo(inFileDescriptor, outPath, outFormatStrategy, outputSurfaceFactory,
+        return transcodeVideo(inFileDescriptor, outPath, outFormatStrategy, outputSurfaceFactory, playbackSpeed,
                 new Listener() {
                     @Override
                     public void onTranscodeProgress(double progress) {
@@ -160,7 +160,7 @@ public class MediaTranscoder {
      * @param outFormatStrategy Strategy for output video format.
      * @param listener          Listener instance for callback.
      */
-    public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final OutputSurfaceFactory outputSurfaceFactory, final Listener listener) {
+    public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final OutputSurfaceFactory outputSurfaceFactory, final double playbackSpeed, final Listener listener) {
         Looper looper = Looper.myLooper();
         if (looper == null) looper = Looper.getMainLooper();
         final Handler handler = new Handler(looper);
@@ -182,6 +182,7 @@ public class MediaTranscoder {
                             });
                         }
                     });
+                    engine.setPlaybackSpeed(playbackSpeed);
                     engine.setDataSource(inFileDescriptor);
                     engine.transcodeVideo(outPath, outFormatStrategy, outputSurfaceFactory);
                 } catch (IOException e) {
