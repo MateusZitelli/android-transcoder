@@ -196,12 +196,12 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
         if (doRender) {
-            if(mPlaybackRate >= 1) {
+            /*if(mPlaybackRate >= 1) {
                 roundedPlaybackRate = Math.round(mPlaybackRate);
             }else{
                 roundedPlaybackRate = 1;
-            }
-            int timeCorrectionFactor = Math.round(1000 / roundedPlaybackRate);
+            }*/
+            long timeCorrectionFactor = Math.round(1000 / mPlaybackRate);
             mEncoderOutputSurfaceWrapper.awaitNewImage();
             mEncoderOutputSurfaceWrapper.drawImage();
             mEncoderInputSurfaceWrapper.setPresentationTime(mBufferInfo.presentationTimeUs * timeCorrectionFactor);
