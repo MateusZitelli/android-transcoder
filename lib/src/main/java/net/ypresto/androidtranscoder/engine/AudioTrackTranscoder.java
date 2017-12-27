@@ -39,15 +39,18 @@ public class AudioTrackTranscoder implements TrackTranscoder {
     private boolean mEncoderStarted;
 
     private AudioChannel mAudioChannel;
+    private long mTimeCorrectionFactor;
 
     public AudioTrackTranscoder(MediaExtractor extractor, int trackIndex,
-                                MediaFormat outputFormat, QueuedMuxer muxer) {
+                                MediaFormat outputFormat, QueuedMuxer muxer,
+                                double playbackRate) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
         mMuxer = muxer;
 
         mInputFormat = mExtractor.getTrackFormat(mTrackIndex);
+        mTimeCorrectionFactor = Math.round(1000 / playbackRate);
     }
 
     @Override
@@ -139,7 +142,7 @@ public class AudioTrackTranscoder implements TrackTranscoder {
             mIsDecoderEOS = true;
             mAudioChannel.drainDecoderBufferAndQueue(AudioChannel.BUFFER_INDEX_END_OF_STREAM, 0);
         } else if (mBufferInfo.size > 0) {
-            mAudioChannel.drainDecoderBufferAndQueue(result, mBufferInfo.presentationTimeUs);
+            mAudioChannel.drainDecoderBufferAndQueue(result, mBufferInfo.presentationTimeUs * mTimeCorrectionFactor);
         }
 
         return DRAIN_STATE_CONSUMED;

@@ -51,7 +51,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private boolean mDecoderStarted;
     private boolean mEncoderStarted;
     private long mWrittenPresentationTimeUs;
-    private double mPlaybackRate;
+    private long mTimeCorrectionFactor;
 
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
                                 MediaFormat outputFormat, QueuedMuxer muxer,
@@ -62,7 +62,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mOutputFormat = outputFormat;
         mMuxer = muxer;
         mDecoderOutputSurfaceFactory = outputSurfaceFactory;
-        mPlaybackRate = playbackRate;
+        mTimeCorrectionFactor = Math.round(1000 / playbackRate);
     }
 
     @Override
@@ -201,10 +201,9 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             }else{
                 roundedPlaybackRate = 1;
             }*/
-            long timeCorrectionFactor = Math.round(1000 / mPlaybackRate);
             mEncoderOutputSurfaceWrapper.awaitNewImage();
             mEncoderOutputSurfaceWrapper.drawImage();
-            mEncoderInputSurfaceWrapper.setPresentationTime(mBufferInfo.presentationTimeUs * timeCorrectionFactor);
+            mEncoderInputSurfaceWrapper.setPresentationTime(mBufferInfo.presentationTimeUs * mTimeCorrectionFactor);
             mEncoderInputSurfaceWrapper.swapBuffers();
         }
         return DRAIN_STATE_CONSUMED;

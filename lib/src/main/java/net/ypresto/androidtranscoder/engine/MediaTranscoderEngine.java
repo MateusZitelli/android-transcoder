@@ -188,7 +188,7 @@ public class MediaTranscoderEngine {
         if (audioOutputFormat == null) {
             mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
         } else {
-            mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer);
+            mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer, mPlaybackSpeed);
         }
 
         if (trackResult.mAudioTrackIndex >= 0) {
