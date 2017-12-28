@@ -202,7 +202,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
                 roundedPlaybackRate = 1;
             }*/
             mEncoderOutputSurfaceWrapper.awaitNewImage();
-            mEncoderOutputSurfaceWrapper.drawImage();
+            mEncoderOutputSurfaceWrapper.drawImage(mBufferInfo.presentationTimeUs);
             mEncoderInputSurfaceWrapper.setPresentationTime(mBufferInfo.presentationTimeUs * mTimeCorrectionFactor);
             mEncoderInputSurfaceWrapper.swapBuffers();
         }

@@ -10,5 +10,5 @@ public interface OutputSurface {
     Surface getSurface();
     void release();
     void awaitNewImage();
-    void drawImage();
+    void drawImage(long presentationTimeUs);
 }
