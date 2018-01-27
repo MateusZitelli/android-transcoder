@@ -8,6 +8,7 @@ buildscript {
 }
 
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 apply plugin: 'bintray-release'
 
 android {
@@ -37,4 +38,10 @@ publish {
     website = 'https://github.com/ypresto/android-transcoder'
     autoPublish = false
     dryRun = false
+}
+repositories {
+    mavenCentral()
+}
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }

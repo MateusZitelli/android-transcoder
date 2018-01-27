@@ -45,6 +45,8 @@ public class MediaTranscoderEngine {
     private ProgressCallback mProgressCallback;
     private long mDurationUs;
     private double mPlaybackSpeed;
+    private long mStartMs;
+    private long mEndMs;
 
     /**
      * Do not use this constructor unless you know what you are doing.
@@ -66,6 +68,14 @@ public class MediaTranscoderEngine {
 
     public void setPlaybackSpeed(Double playbackSpeed) {
         mPlaybackSpeed = playbackSpeed;
+    }
+
+    public void setTrimStart(Long startMs) {
+        mStartMs = startMs;
+    }
+
+    public void setTrimEnd(Long endMs) {
+        mEndMs = endMs;
     }
 
     /**
@@ -180,7 +190,7 @@ public class MediaTranscoderEngine {
         if (videoOutputFormat == null) {
             mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
         } else {
-            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer, outputSurfaceFactory, mPlaybackSpeed);
+            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer, outputSurfaceFactory, mPlaybackSpeed, mStartMs, mEndMs);
         }
         mVideoTrackTranscoder.setup();
         mExtractor.selectTrack(trackResult.mVideoTrackIndex);

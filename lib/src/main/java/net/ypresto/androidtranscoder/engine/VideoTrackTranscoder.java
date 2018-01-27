@@ -52,23 +52,30 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private boolean mEncoderStarted;
     private long mWrittenPresentationTimeUs;
     private long mTimeCorrectionFactor;
+    private long mStartMs;
+    private long mEndMs;
 
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
                                 MediaFormat outputFormat, QueuedMuxer muxer,
                                 OutputSurfaceFactory outputSurfaceFactory,
-                                double playbackRate) {
+                                double playbackRate,
+                                Long startMs,
+                                Long endMs) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
         mMuxer = muxer;
         mDecoderOutputSurfaceFactory = outputSurfaceFactory;
         mTimeCorrectionFactor = Math.round(1000 / playbackRate);
+        mStartMs = startMs;
+        mEndMs = endMs;
     }
 
     @Override
     public void setup() {
         MediaCodecListCompat codecs = new MediaCodecListCompat(MediaCodecListCompat.REGULAR_CODECS);
         mExtractor.selectTrack(mTrackIndex);
+        mExtractor.seekTo(mStartMs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
         try {
             mEncoder = MediaCodec.createByCodecName(codecs.findEncoderForFormat(mOutputFormat));
         } catch (IOException | IllegalArgumentException e) {
@@ -176,7 +183,6 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     }
 
     private int drainDecoder(long timeoutUs) {
-        float roundedPlaybackRate;
         if (mIsDecoderEOS) return DRAIN_STATE_NONE;
         int result = mDecoder.dequeueOutputBuffer(mBufferInfo, timeoutUs);
         switch (result) {
@@ -191,16 +197,13 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             mIsDecoderEOS = true;
             mBufferInfo.size = 0;
         }
-        boolean doRender = (mBufferInfo.size > 0);
+        boolean doRender = (mBufferInfo.size > 0 &&
+                mBufferInfo.presentationTimeUs >= mStartMs * 1000 &&
+                mBufferInfo.presentationTimeUs <= mEndMs * 1000);
         // NOTE: doRender will block if buffer (of encoder) is full.
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
         if (doRender) {
-            /*if(mPlaybackRate >= 1) {
-                roundedPlaybackRate = Math.round(mPlaybackRate);
-            }else{
-                roundedPlaybackRate = 1;
-            }*/
             mEncoderOutputSurfaceWrapper.awaitNewImage();
             mEncoderOutputSurfaceWrapper.drawImage(mBufferInfo.presentationTimeUs);
             mEncoderInputSurfaceWrapper.setPresentationTime(mBufferInfo.presentationTimeUs * mTimeCorrectionFactor);

@@ -17,7 +17,6 @@ package net.ypresto.androidtranscoder.format;
 
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
-import android.util.Log;
 
 class Android720pFormatStrategy implements MediaFormatStrategy {
     public static final int AUDIO_BITRATE_AS_IS = -1;
@@ -59,9 +58,6 @@ class Android720pFormatStrategy implements MediaFormatStrategy {
             longer = height;
             outWidth = SHORTER_LENGTH;
             outHeight = LONGER_LENGTH;
-        }
-        if (longer * 9 != shorter * 16) {
-            throw new OutputFormatUnavailableException("This video is not 16:9, and is not able to transcode. (" + width + "x" + height + ")");
         }
 
         /*
