@@ -54,6 +54,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private long mTimeCorrectionFactor;
     private long mStartMs;
     private long mEndMs;
+    private boolean mEndReached;
 
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
                                 MediaFormat outputFormat, QueuedMuxer muxer,
@@ -69,6 +70,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mTimeCorrectionFactor = Math.round(1000 / playbackRate);
         mStartMs = startMs;
         mEndMs = endMs;
+        mEndReached = false;
     }
 
     @Override
@@ -170,7 +172,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         }
         int result = mDecoder.dequeueInputBuffer(timeoutUs);
         if (result < 0) return DRAIN_STATE_NONE;
-        if (trackIndex < 0) {
+        if (trackIndex < 0 || mEndReached) {
             mIsExtractorEOS = true;
             mDecoder.queueInputBuffer(result, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             return DRAIN_STATE_NONE;
@@ -192,14 +194,15 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
                 return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
-        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mEndReached) {
             mEncoder.signalEndOfInputStream();
             mIsDecoderEOS = true;
             mBufferInfo.size = 0;
         }
+        mEndReached = mBufferInfo.presentationTimeUs >= mEndMs * 1000;
         boolean doRender = (mBufferInfo.size > 0 &&
                 mBufferInfo.presentationTimeUs >= mStartMs * 1000 &&
-                mBufferInfo.presentationTimeUs <= mEndMs * 1000);
+                !mEndReached);
         // NOTE: doRender will block if buffer (of encoder) is full.
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
@@ -232,7 +235,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             throw new RuntimeException("Could not determine actual output format.");
         }
 
-        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mEndReached) {
             mIsEncoderEOS = true;
             mBufferInfo.set(0, 0, 0, mBufferInfo.flags);
         }
