@@ -18,6 +18,7 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
+import android.util.Log;
 
 import net.ypresto.androidtranscoder.compat.MediaCodecListCompat;
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
@@ -120,6 +121,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         boolean busy = false;
 
         int status;
+        Log.d("VideoTrackTranscoder", "Pipeline " + mEndReached + " " + mWrittenPresentationTimeUs + " " + mIsDecoderEOS);
         while (drainEncoder(0) != DRAIN_STATE_NONE) busy = true;
         do {
             status = drainDecoder(0);
@@ -199,10 +201,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             mIsDecoderEOS = true;
             mBufferInfo.size = 0;
         }
-        mEndReached = mBufferInfo.presentationTimeUs >= mEndUs;
-        boolean doRender = (mBufferInfo.size > 0 &&
-                mBufferInfo.presentationTimeUs >= mStartUs &&
-                !mEndReached);
+        boolean doRender = (mBufferInfo.size > 0 && mBufferInfo.presentationTimeUs >= mStartUs);
         // NOTE: doRender will block if buffer (of encoder) is full.
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
@@ -235,6 +234,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             throw new RuntimeException("Could not determine actual output format.");
         }
 
+        mEndReached = mBufferInfo.presentationTimeUs >= mEndUs;
         if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mEndReached) {
             mIsEncoderEOS = true;
             mBufferInfo.set(0, 0, 0, mBufferInfo.flags);
@@ -244,6 +244,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             mEncoder.releaseOutputBuffer(result, false);
             return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
+
         mMuxer.writeSampleData(QueuedMuxer.SampleType.VIDEO, mEncoderOutputBuffers[result], mBufferInfo);
         mWrittenPresentationTimeUs = mBufferInfo.presentationTimeUs;
         mEncoder.releaseOutputBuffer(result, false);

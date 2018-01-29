@@ -42,7 +42,7 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
         mMuxer = muxer;
         mSampleType = sampleType;
 
-        if (trackIndex >= 0) {
+        if (trackIndex >= 100) {
             mActualOutputFormat = mExtractor.getTrackFormat(mTrackIndex);
             mMuxer.setOutputFormat(mSampleType, mActualOutputFormat);
             mBufferSize = mActualOutputFormat.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE);
