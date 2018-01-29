@@ -52,8 +52,8 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private boolean mEncoderStarted;
     private long mWrittenPresentationTimeUs;
     private long mTimeCorrectionFactor;
-    private long mStartMs;
-    private long mEndMs;
+    private long mStartUs;
+    private long mEndUs;
     private boolean mEndReached;
 
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
@@ -68,8 +68,8 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mMuxer = muxer;
         mDecoderOutputSurfaceFactory = outputSurfaceFactory;
         mTimeCorrectionFactor = Math.round(1000 / playbackRate);
-        mStartMs = startMs;
-        mEndMs = endMs;
+        mStartUs = startMs * 1000;
+        mEndUs = endMs * 1000;
         mEndReached = false;
     }
 
@@ -77,7 +77,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     public void setup() {
         MediaCodecListCompat codecs = new MediaCodecListCompat(MediaCodecListCompat.REGULAR_CODECS);
         mExtractor.selectTrack(mTrackIndex);
-        mExtractor.seekTo(mStartMs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
+        mExtractor.seekTo(mStartUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
         try {
             mEncoder = MediaCodec.createByCodecName(codecs.findEncoderForFormat(mOutputFormat));
         } catch (IOException | IllegalArgumentException e) {
@@ -199,9 +199,9 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             mIsDecoderEOS = true;
             mBufferInfo.size = 0;
         }
-        mEndReached = mBufferInfo.presentationTimeUs >= mEndMs * 1000;
+        mEndReached = mBufferInfo.presentationTimeUs >= mEndUs;
         boolean doRender = (mBufferInfo.size > 0 &&
-                mBufferInfo.presentationTimeUs >= mStartMs * 1000 &&
+                mBufferInfo.presentationTimeUs >= mStartUs &&
                 !mEndReached);
         // NOTE: doRender will block if buffer (of encoder) is full.
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
