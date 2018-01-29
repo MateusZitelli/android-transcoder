@@ -219,8 +219,11 @@ public class MediaTranscoderEngine {
                     || mAudioTrackTranscoder.stepPipeline();
             loopCount++;
             if (mDurationUs > 0 && loopCount % PROGRESS_INTERVAL_STEPS == 0) {
-                double videoProgress = mVideoTrackTranscoder.isFinished() ? 1.0 : Math.min(1.0, (double) mVideoTrackTranscoder.getWrittenPresentationTimeUs() / mDurationUs);
-                double audioProgress = mAudioTrackTranscoder.isFinished() ? 1.0 : Math.min(1.0, (double) mAudioTrackTranscoder.getWrittenPresentationTimeUs() / mDurationUs);
+                double videoProgress = mVideoTrackTranscoder.isFinished() ? 1.0 :
+                        Math.min(1.0, (double) (mVideoTrackTranscoder.getWrittenPresentationTimeUs() - mStartMs * 1000) / 1000 / (mEndMs - mStartMs));
+                double audioProgress = mAudioTrackTranscoder.isFinished() ? 1.0 :
+                        Math.min(1.0, (double) mAudioTrackTranscoder.getWrittenPresentationTimeUs() / mDurationUs);
+                Log.d("VideoProgress", String.valueOf(videoProgress));
                 double progress = (videoProgress + audioProgress) / 2.0;
                 mProgress = progress;
                 if (mProgressCallback != null) mProgressCallback.onProgress(progress);

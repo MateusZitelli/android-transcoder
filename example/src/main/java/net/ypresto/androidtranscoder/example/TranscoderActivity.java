@@ -121,7 +121,7 @@ public class TranscoderActivity extends Activity {
                                 public OutputSurface createOutputSurface() {
                                     return new OutputSurfaceImpl();
                                 }
-                            }, 1.0, 1000, 2000, listener);
+                            }, 1.0, 0, 60000, listener);
                     switchButtonEnabled(true);
                 }
                 break;
