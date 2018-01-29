@@ -18,7 +18,6 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
-import android.util.Log;
 
 import net.ypresto.androidtranscoder.compat.MediaCodecListCompat;
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
@@ -121,7 +120,6 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         boolean busy = false;
 
         int status;
-        Log.d("VideoTrackTranscoder", "Pipeline " + mEndReached + " " + mWrittenPresentationTimeUs + " " + mIsDecoderEOS);
         while (drainEncoder(0) != DRAIN_STATE_NONE) busy = true;
         do {
             status = drainDecoder(0);
