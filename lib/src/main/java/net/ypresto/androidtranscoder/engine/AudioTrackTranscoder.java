@@ -5,6 +5,7 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 
 import net.ypresto.androidtranscoder.compat.MediaCodecBufferCompatWrapper;
+import net.ypresto.androidtranscoder.compat.MediaCodecListCompat;
 
 import java.io.IOException;
 
@@ -40,10 +41,15 @@ public class AudioTrackTranscoder implements TrackTranscoder {
 
     private AudioChannel mAudioChannel;
     private long mTimeCorrectionFactor;
+    private long mStartUs;
+    private long mEndUs;
+    private boolean mEndReached;
 
     public AudioTrackTranscoder(MediaExtractor extractor, int trackIndex,
                                 MediaFormat outputFormat, QueuedMuxer muxer,
-                                double playbackRate) {
+                                double playbackRate,
+                                long startMs,
+                                long endMs) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
@@ -51,13 +57,18 @@ public class AudioTrackTranscoder implements TrackTranscoder {
 
         mInputFormat = mExtractor.getTrackFormat(mTrackIndex);
         mTimeCorrectionFactor = Math.round(1000 / playbackRate);
+        mStartUs = startMs * 1000;
+        mEndUs = endMs * 1000;
+        mEndReached = false;
     }
 
     @Override
     public void setup() {
+        MediaCodecListCompat codecs = new MediaCodecListCompat(MediaCodecListCompat.REGULAR_CODECS);
         mExtractor.selectTrack(mTrackIndex);
+        mExtractor.seekTo(mStartUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
         try {
-            mEncoder = MediaCodec.createEncoderByType(mOutputFormat.getString(MediaFormat.KEY_MIME));
+            mEncoder = MediaCodec.createByCodecName(codecs.findEncoderForFormat(mOutputFormat));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -68,7 +79,7 @@ public class AudioTrackTranscoder implements TrackTranscoder {
 
         final MediaFormat inputFormat = mExtractor.getTrackFormat(mTrackIndex);
         try {
-            mDecoder = MediaCodec.createDecoderByType(inputFormat.getString(MediaFormat.KEY_MIME));
+            mDecoder = MediaCodec.createByCodecName(codecs.findDecoderForFormat(inputFormat));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -112,7 +123,7 @@ public class AudioTrackTranscoder implements TrackTranscoder {
 
         final int result = mDecoder.dequeueInputBuffer(timeoutUs);
         if (result < 0) return DRAIN_STATE_NONE;
-        if (trackIndex < 0) {
+        if (trackIndex < 0 || mEndReached) {
             mIsExtractorEOS = true;
             mDecoder.queueInputBuffer(result, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             return DRAIN_STATE_NONE;
@@ -138,11 +149,11 @@ public class AudioTrackTranscoder implements TrackTranscoder {
                 return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
 
-        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mEndReached) {
             mIsDecoderEOS = true;
             mAudioChannel.drainDecoderBufferAndQueue(AudioChannel.BUFFER_INDEX_END_OF_STREAM, 0);
         } else if (mBufferInfo.size > 0) {
-            mAudioChannel.drainDecoderBufferAndQueue(result, mBufferInfo.presentationTimeUs * mTimeCorrectionFactor);
+            mAudioChannel.drainDecoderBufferAndQueue(result, mBufferInfo.presentationTimeUs);
         }
 
         return DRAIN_STATE_CONSUMED;
@@ -171,7 +182,8 @@ public class AudioTrackTranscoder implements TrackTranscoder {
             throw new RuntimeException("Could not determine actual output format.");
         }
 
-        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+        mEndReached = mBufferInfo.presentationTimeUs >= mEndUs * 1000;
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mEndReached) {
             mIsEncoderEOS = true;
             mBufferInfo.set(0, 0, 0, mBufferInfo.flags);
         }

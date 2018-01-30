@@ -198,7 +198,7 @@ public class MediaTranscoderEngine {
         if (audioOutputFormat == null) {
             mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
         } else {
-            mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer, mPlaybackSpeed);
+            mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer, mPlaybackSpeed, mStartMs, mEndMs);
         }
 
         if (trackResult.mAudioTrackIndex >= 0) {
@@ -222,7 +222,7 @@ public class MediaTranscoderEngine {
                 double videoProgress = mVideoTrackTranscoder.isFinished() ? 1.0 :
                         Math.min(1.0, (double) (mVideoTrackTranscoder.getWrittenPresentationTimeUs() - mStartMs * 1000) / 1000 / (mEndMs - mStartMs));
                 double audioProgress = mAudioTrackTranscoder.isFinished() ? 1.0 :
-                        Math.min(1.0, (double) mAudioTrackTranscoder.getWrittenPresentationTimeUs() / mDurationUs);
+                        Math.min(1.0, (double) (mAudioTrackTranscoder.getWrittenPresentationTimeUs() - mStartMs * 1000) / 1000 / (mEndMs - mStartMs));
                 double progress = (videoProgress + audioProgress) / 2.0;
                 mProgress = progress;
                 if (mProgressCallback != null) mProgressCallback.onProgress(progress);

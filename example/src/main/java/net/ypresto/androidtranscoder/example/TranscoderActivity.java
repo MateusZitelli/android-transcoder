@@ -115,13 +115,13 @@ public class TranscoderActivity extends Activity {
                     };
                     Log.d(TAG, "transcoding into " + file);
                     mFuture = MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
-                            MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1),
+                            MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 2),
                             new OutputSurfaceFactory() {
                                 @Override
                                 public OutputSurface createOutputSurface() {
                                     return new OutputSurfaceImpl();
                                 }
-                            }, 2.0, 500, 2000, listener);
+                            }, 2.0, 0, 3000, listener);
                     switchButtonEnabled(true);
                 }
                 break;
