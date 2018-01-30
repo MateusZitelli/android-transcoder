@@ -40,14 +40,12 @@ public class AudioTrackTranscoder implements TrackTranscoder {
     private boolean mEncoderStarted;
 
     private AudioChannel mAudioChannel;
-    private long mTimeCorrectionFactor;
     private long mStartUs;
     private long mEndUs;
     private boolean mEndReached;
 
     public AudioTrackTranscoder(MediaExtractor extractor, int trackIndex,
                                 MediaFormat outputFormat, QueuedMuxer muxer,
-                                double playbackRate,
                                 long startMs,
                                 long endMs) {
         mExtractor = extractor;
@@ -56,7 +54,6 @@ public class AudioTrackTranscoder implements TrackTranscoder {
         mMuxer = muxer;
 
         mInputFormat = mExtractor.getTrackFormat(mTrackIndex);
-        mTimeCorrectionFactor = Math.round(1000 / playbackRate);
         mStartUs = startMs * 1000;
         mEndUs = endMs * 1000;
         mEndReached = false;
@@ -182,7 +179,7 @@ public class AudioTrackTranscoder implements TrackTranscoder {
             throw new RuntimeException("Could not determine actual output format.");
         }
 
-        mEndReached = mBufferInfo.presentationTimeUs >= mEndUs * 1000;
+        mEndReached = mBufferInfo.presentationTimeUs >= mEndUs;
         if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mEndReached) {
             mIsEncoderEOS = true;
             mBufferInfo.set(0, 0, 0, mBufferInfo.flags);

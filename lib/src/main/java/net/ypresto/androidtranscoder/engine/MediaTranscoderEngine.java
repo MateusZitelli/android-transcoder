@@ -144,6 +144,59 @@ public class MediaTranscoderEngine {
         }
     }
 
+    /**
+     * Run video transcoding removing audio. Blocks current thread.
+     *
+     * @param outputPath     File path to output transcoded video file.
+     * @param formatStrategy Output format strategy.
+     * @throws IOException                  when input or output file could not be opened.
+     * @throws InvalidOutputFormatException when output format is not supported.
+     * @throws InterruptedException         when cancel to transcode.
+     */
+    public void transcodeVideoWithoutAudio(
+            String outputPath,
+            MediaFormatStrategy formatStrategy,
+            OutputSurfaceFactory outputSurfaceFactory) throws IOException, InterruptedException {
+        if (outputPath == null) {
+            throw new NullPointerException("Output path cannot be null.");
+        }
+        if (mInputFileDescriptor == null) {
+            throw new IllegalStateException("Data source is not set.");
+        }
+        try {
+            mExtractor = new MediaExtractor();
+            mExtractor.setDataSource(mInputFileDescriptor);
+            mMuxer = new MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            setupMetadata();
+            setupVideoTrackTranscoder(formatStrategy, outputSurfaceFactory);
+            runVideoPipelines();
+            mMuxer.stop();
+        } finally {
+            try {
+                if (mVideoTrackTranscoder != null) {
+                    mVideoTrackTranscoder.release();
+                    mVideoTrackTranscoder = null;
+                }
+                if (mExtractor != null) {
+                    mExtractor.release();
+                    mExtractor = null;
+                }
+            } catch (RuntimeException e) {
+                // Too fatal to make alive the app, because it may leak native resources.
+                //noinspection ThrowFromFinallyBlock
+                throw new Error("Could not shutdown extractor, codecs and muxer pipeline.", e);
+            }
+            try {
+                if (mMuxer != null) {
+                    mMuxer.release();
+                    mMuxer = null;
+                }
+            } catch (RuntimeException e) {
+                Log.e(TAG, "Failed to release muxer.", e);
+            }
+        }
+    }
+
     private void setupMetadata() throws IOException {
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
         mediaMetadataRetriever.setDataSource(mInputFileDescriptor);
@@ -198,13 +251,33 @@ public class MediaTranscoderEngine {
         if (audioOutputFormat == null) {
             mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
         } else {
-            mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer, mPlaybackSpeed, mStartMs, mEndMs);
+            mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer, mStartMs, mEndMs);
         }
 
         if (trackResult.mAudioTrackIndex >= 0) {
             mExtractor.selectTrack(trackResult.mAudioTrackIndex);
         }
         mAudioTrackTranscoder.setup();
+    }
+
+    private void setupVideoTrackTranscoder(MediaFormatStrategy formatStrategy, OutputSurfaceFactory outputSurfaceFactory) {
+        MediaExtractorUtils.TrackResult trackResult = MediaExtractorUtils.getFirstVideoAndAudioTrack(mExtractor);
+        MediaFormat videoOutputFormat = formatStrategy.createVideoOutputFormat(trackResult.mVideoTrackFormat);
+        if (videoOutputFormat == null) {
+            throw new InvalidOutputFormatException("MediaFormatStrategy returned pass-through for both video and audio. No transcoding is necessary.");
+        }
+        QueuedMuxer queuedMuxer = new QueuedMuxer(mMuxer, new QueuedMuxer.Listener() {
+            @Override
+            public void onDetermineOutputFormat() {
+                MediaFormatValidator.validateVideoOutputFormat(mVideoTrackTranscoder.getDeterminedFormat());
+            }
+        });
+
+        queuedMuxer.setOutputFormat(QueuedMuxer.SampleType.AUDIO, null);
+
+        mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer, outputSurfaceFactory, mPlaybackSpeed, mStartMs, mEndMs);
+        mVideoTrackTranscoder.setup();
+        mExtractor.selectTrack(trackResult.mVideoTrackIndex);
     }
 
     private void runPipelines() throws InterruptedException {
@@ -224,6 +297,28 @@ public class MediaTranscoderEngine {
                 double audioProgress = mAudioTrackTranscoder.isFinished() ? 1.0 :
                         Math.min(1.0, (double) (mAudioTrackTranscoder.getWrittenPresentationTimeUs() - mStartMs * 1000) / 1000 / (mEndMs - mStartMs));
                 double progress = (videoProgress + audioProgress) / 2.0;
+                mProgress = progress;
+                if (mProgressCallback != null) mProgressCallback.onProgress(progress);
+            }
+            if (!stepped) {
+                Thread.sleep(SLEEP_TO_WAIT_TRACK_TRANSCODERS);
+            }
+        }
+    }
+
+    private void runVideoPipelines() throws InterruptedException {
+        long loopCount = 0;
+        if (mDurationUs <= 0) {
+            double progress = PROGRESS_UNKNOWN;
+            mProgress = progress;
+            if (mProgressCallback != null) mProgressCallback.onProgress(progress); // unknown
+        }
+        while (!mVideoTrackTranscoder.isFinished()) {
+            boolean stepped = mVideoTrackTranscoder.stepPipeline();
+            loopCount++;
+            if (mDurationUs > 0 && loopCount % PROGRESS_INTERVAL_STEPS == 0) {
+                double progress = mVideoTrackTranscoder.isFinished() ? 1.0 :
+                        Math.min(1.0, (double) (mVideoTrackTranscoder.getWrittenPresentationTimeUs() - mStartMs * 1000) / 1000 / (mEndMs - mStartMs));
                 mProgress = progress;
                 if (mProgressCallback != null) mProgressCallback.onProgress(progress);
             }
