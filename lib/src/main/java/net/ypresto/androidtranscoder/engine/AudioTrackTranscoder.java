@@ -119,8 +119,13 @@ public class AudioTrackTranscoder implements TrackTranscoder {
         }
 
         final int result = mDecoder.dequeueInputBuffer(timeoutUs);
-        if (result < 0) return DRAIN_STATE_NONE;
-        if (trackIndex < 0 || mEndReached) {
+        if (result < 0) {
+            if (mEndReached) {
+                mExtractor.advance();
+            }
+            return DRAIN_STATE_NONE;
+        }
+        if (trackIndex < 0) {
             mIsExtractorEOS = true;
             mDecoder.queueInputBuffer(result, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             return DRAIN_STATE_NONE;

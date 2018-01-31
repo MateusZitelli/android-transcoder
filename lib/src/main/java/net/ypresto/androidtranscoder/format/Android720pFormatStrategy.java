@@ -70,7 +70,7 @@ class Android720pFormatStrategy implements MediaFormatStrategy {
 
         // Use original sample rate, as resampling is not supported yet.
         final MediaFormat format = MediaFormat.createAudioFormat(MediaFormatExtraConstants.MIMETYPE_AUDIO_AAC,
-                48000, mAudioChannels);
+                inputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE), mAudioChannels);
         format.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
         format.setInteger(MediaFormat.KEY_BIT_RATE, mAudioBitrate);
         return format;

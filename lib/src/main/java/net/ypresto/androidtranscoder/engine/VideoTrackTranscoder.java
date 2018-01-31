@@ -171,15 +171,21 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             return DRAIN_STATE_NONE;
         }
         int result = mDecoder.dequeueInputBuffer(timeoutUs);
-        if (result < 0) return DRAIN_STATE_NONE;
-        if (trackIndex < 0 || mEndReached) {
+        if (result < 0) {
+            if (mEndReached) {
+                mExtractor.advance();
+            }
+            return DRAIN_STATE_NONE;
+        }
+        if (trackIndex < 0) {
             mIsExtractorEOS = true;
             mDecoder.queueInputBuffer(result, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             return DRAIN_STATE_NONE;
         }
         int sampleSize = mExtractor.readSampleData(mDecoderInputBuffers[result], 0);
         boolean isKeyFrame = (mExtractor.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0;
-        mDecoder.queueInputBuffer(result, 0, sampleSize, mExtractor.getSampleTime(), isKeyFrame ? MediaCodec.BUFFER_FLAG_SYNC_FRAME : 0);
+        if(!mEndReached)
+            mDecoder.queueInputBuffer(result, 0, sampleSize, mExtractor.getSampleTime(), isKeyFrame ? MediaCodec.BUFFER_FLAG_SYNC_FRAME : 0);
         mExtractor.advance();
         return DRAIN_STATE_CONSUMED;
     }
