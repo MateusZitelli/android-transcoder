@@ -236,6 +236,73 @@ public class MediaTranscoder {
     }
 
     /**
+     * Transcodes video file asynchronously removing/ignoring audio tracks.
+     *
+     * @param inPath            File path for input.
+     * @param outPath           File path for output.
+     * @param outFormatStrategy Strategy for output video format.
+     * @param listener          Listener instance for callback.
+     * @throws IOException if input file could not be read.
+     */
+    public Future<Void> transcodeVideoWithoutAudio(final String inPath, final String outPath,
+                                       final MediaFormatStrategy outFormatStrategy,
+                                       final OutputSurfaceFactory outputSurfaceFactory,
+                                       final double playbackSpeed,
+                                       final long startMs, final long endMs,
+                                       final Listener listener) throws IOException {
+        FileInputStream fileInputStream = null;
+        FileDescriptor inFileDescriptor;
+        try {
+            fileInputStream = new FileInputStream(inPath);
+            inFileDescriptor = fileInputStream.getFD();
+        } catch (IOException e) {
+            if (fileInputStream != null) {
+                try {
+                    fileInputStream.close();
+                } catch (IOException eClose) {
+                    Log.e(TAG, "Can't close input stream: ", eClose);
+                }
+            }
+            throw e;
+        }
+        final FileInputStream finalFileInputStream = fileInputStream;
+        return transcodeVideoWithoutAudio(inFileDescriptor, outPath, outFormatStrategy, outputSurfaceFactory,
+                playbackSpeed, startMs, endMs,
+                new Listener() {
+                    @Override
+                    public void onTranscodeProgress(double progress) {
+                        listener.onTranscodeProgress(progress);
+                    }
+
+                    @Override
+                    public void onTranscodeCompleted() {
+                        closeStream();
+                        listener.onTranscodeCompleted();
+                    }
+
+                    @Override
+                    public void onTranscodeCanceled() {
+                        closeStream();
+                        listener.onTranscodeCanceled();
+                    }
+
+                    @Override
+                    public void onTranscodeFailed(Exception exception) {
+                        closeStream();
+                        listener.onTranscodeFailed(exception);
+                    }
+
+                    private void closeStream() {
+                        try {
+                            finalFileInputStream.close();
+                        } catch (IOException e) {
+                            Log.e(TAG, "Can't close input stream: ", e);
+                        }
+                    }
+                });
+    }
+
+    /**
      * Transcodes video file asynchronously.
      * Audio track will be kept unchanged.
      *
