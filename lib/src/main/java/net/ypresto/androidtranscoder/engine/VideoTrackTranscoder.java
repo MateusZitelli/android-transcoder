@@ -18,6 +18,7 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
+import android.util.Log;
 
 import net.ypresto.androidtranscoder.compat.MediaCodecListCompat;
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
@@ -67,7 +68,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mOutputFormat = outputFormat;
         mMuxer = muxer;
         mDecoderOutputSurfaceFactory = outputSurfaceFactory;
-        mTimeCorrectionFactor = Math.round(1000 / playbackRate);
+        mTimeCorrectionFactor = Math.round(1000L / playbackRate);
         mStartUs = startMs * 1000;
         mEndUs = endMs * 1000;
         mEndReached = false;
@@ -177,13 +178,14 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             }
             return DRAIN_STATE_NONE;
         }
-        if (trackIndex < 0) {
+        if (trackIndex < 0 || mEndReached) {
             mIsExtractorEOS = true;
             mDecoder.queueInputBuffer(result, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             return DRAIN_STATE_NONE;
         }
         int sampleSize = mExtractor.readSampleData(mDecoderInputBuffers[result], 0);
         boolean isKeyFrame = (mExtractor.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0;
+        Log.d("drainExtractor", String.valueOf(mBufferInfo.presentationTimeUs) + " " + mEndReached + " " + isKeyFrame);
         if(!mEndReached)
             mDecoder.queueInputBuffer(result, 0, sampleSize, mExtractor.getSampleTime(), isKeyFrame ? MediaCodec.BUFFER_FLAG_SYNC_FRAME : 0);
         mExtractor.advance();
@@ -209,10 +211,11 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         // NOTE: doRender will block if buffer (of encoder) is full.
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
+        Log.d("drainDecoder", String.valueOf(mBufferInfo.presentationTimeUs) + " " + mEndReached);
         if (doRender) {
             mEncoderOutputSurfaceWrapper.awaitNewImage();
             mEncoderOutputSurfaceWrapper.drawImage(mBufferInfo.presentationTimeUs);
-            mEncoderInputSurfaceWrapper.setPresentationTime(mBufferInfo.presentationTimeUs * mTimeCorrectionFactor);
+            mEncoderInputSurfaceWrapper.setPresentationTime((mBufferInfo.presentationTimeUs - mStartUs) * mTimeCorrectionFactor + mStartUs * 1000);
             mEncoderInputSurfaceWrapper.swapBuffers();
         }
         return DRAIN_STATE_CONSUMED;
@@ -239,7 +242,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         }
 
         mEndReached = mBufferInfo.presentationTimeUs >= mEndUs;
-        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 || mEndReached) {
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
             mIsEncoderEOS = true;
             mBufferInfo.set(0, 0, 0, mBufferInfo.flags);
         }
@@ -249,6 +252,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
 
+        Log.d("drainEncoder", String.valueOf(mBufferInfo.presentationTimeUs) + " " + mEndReached);
         mMuxer.writeSampleData(QueuedMuxer.SampleType.VIDEO, mEncoderOutputBuffers[result], mBufferInfo);
         mWrittenPresentationTimeUs = mBufferInfo.presentationTimeUs;
         mEncoder.releaseOutputBuffer(result, false);
