@@ -22,8 +22,8 @@ class Android720pFormatStrategy implements MediaFormatStrategy {
     public static final int AUDIO_BITRATE_AS_IS = -1;
     public static final int AUDIO_CHANNELS_AS_IS = -1;
     private static final String TAG = "720pFormatStrategy";
-    private static final int LONGER_LENGTH = 1280;
-    private static final int SHORTER_LENGTH = 720;
+    private static final int LONGER_LENGTH = 1920;
+    private static final int SHORTER_LENGTH = 960;
     private static final int DEFAULT_VIDEO_BITRATE = 8000 * 1000; // From Nexus 4 Camera in 720p
     private final int mVideoBitrate;
     private final int mAudioBitrate;
@@ -59,7 +59,7 @@ class Android720pFormatStrategy implements MediaFormatStrategy {
         MediaFormat format = MediaFormat.createVideoFormat("video/avc", outWidth, outHeight);
         format.setInteger(MediaFormat.KEY_BIT_RATE, mVideoBitrate);
         format.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
-        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 3);
+        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 2);
         format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
         return format;
     }
