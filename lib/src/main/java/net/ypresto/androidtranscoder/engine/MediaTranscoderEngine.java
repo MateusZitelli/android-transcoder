@@ -282,14 +282,17 @@ public class MediaTranscoderEngine {
 
     private void runPipelines() throws InterruptedException {
         long loopCount = 0;
+        int audioTranscoderEmptySteps = 0;
         if (mDurationUs <= 0) {
             double progress = PROGRESS_UNKNOWN;
             mProgress = progress;
             if (mProgressCallback != null) mProgressCallback.onProgress(progress); // unknown
         }
-        while (!(mVideoTrackTranscoder.isFinished() && mAudioTrackTranscoder.isFinished())) {
-            boolean stepped = mVideoTrackTranscoder.stepPipeline()
-                    || mAudioTrackTranscoder.stepPipeline();
+        while (!(mVideoTrackTranscoder.isFinished() && mAudioTrackTranscoder.isFinished()) && audioTranscoderEmptySteps < 10) {
+            boolean stepped = mVideoTrackTranscoder.stepPipeline() || mAudioTrackTranscoder.stepPipeline();
+            if(stepped) audioTranscoderEmptySteps = 0;
+            if(mVideoTrackTranscoder.isFinished() && !mAudioTrackTranscoder.isFinished() && !stepped)
+                audioTranscoderEmptySteps++;
             loopCount++;
             if (mDurationUs > 0 && loopCount % PROGRESS_INTERVAL_STEPS == 0) {
                 double videoProgress = mVideoTrackTranscoder.isFinished() ? 1.0 :
