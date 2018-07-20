@@ -185,7 +185,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         }
         int sampleSize = mExtractor.readSampleData(mDecoderInputBuffers[result], 0);
         boolean isKeyFrame = (mExtractor.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0;
-        Log.d("drainExtractor", String.valueOf(mBufferInfo.presentationTimeUs) + " " + mEndReached + " " + isKeyFrame);
+        // Log.d("drainExtractor", String.valueOf(mBufferInfo.presentationTimeUs) + " " + mEndReached + " " + isKeyFrame);
         if(!mEndReached)
             mDecoder.queueInputBuffer(result, 0, sampleSize, mExtractor.getSampleTime(), isKeyFrame ? MediaCodec.BUFFER_FLAG_SYNC_FRAME : 0);
         mExtractor.advance();
@@ -211,7 +211,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         // NOTE: doRender will block if buffer (of encoder) is full.
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
-        Log.d("drainDecoder", String.valueOf(mBufferInfo.presentationTimeUs) + " " + mEndReached);
+        // Log.d("drainDecoder", String.valueOf(mBufferInfo.presentationTimeUs) + " " + mEndReached);
         if (doRender) {
             mEncoderOutputSurfaceWrapper.awaitNewImage();
             mEncoderOutputSurfaceWrapper.drawImage(mBufferInfo.presentationTimeUs);
@@ -253,7 +253,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
 
-        Log.d("drainEncoder", String.valueOf(mBufferInfo.presentationTimeUs) + " " + mEndReached);
+        // Log.d("drainEncoder", String.valueOf(mBufferInfo.presentationTimeUs) + " " + mEndReached);
         mMuxer.writeSampleData(QueuedMuxer.SampleType.VIDEO, mEncoderOutputBuffers[result], mBufferInfo);
         mWrittenPresentationTimeUs = mBufferInfo.presentationTimeUs;
         mEncoder.releaseOutputBuffer(result, false);
