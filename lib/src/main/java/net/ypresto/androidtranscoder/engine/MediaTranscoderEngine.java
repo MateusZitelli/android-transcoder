@@ -241,9 +241,20 @@ public class MediaTranscoderEngine {
         });
 
         if (videoOutputFormat == null) {
-            mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
+            mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
+                    trackResult.mVideoTrackIndex,
+                    queuedMuxer,
+                    QueuedMuxer.SampleType.VIDEO);
         } else {
-            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer, outputSurfaceFactory, mPlaybackSpeed, mStartMs, mEndMs);
+            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor,
+                    trackResult.mVideoTrackIndex,
+                    videoOutputFormat,
+                    queuedMuxer,
+                    outputSurfaceFactory,
+                    mPlaybackSpeed,
+                    mStartMs,
+                    mEndMs,
+                    120f);
         }
         mVideoTrackTranscoder.setup();
         mExtractor.selectTrack(trackResult.mVideoTrackIndex);
@@ -275,7 +286,15 @@ public class MediaTranscoderEngine {
 
         queuedMuxer.setOutputFormat(QueuedMuxer.SampleType.AUDIO, null);
 
-        mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer, outputSurfaceFactory, mPlaybackSpeed, mStartMs, mEndMs);
+        mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor,
+                trackResult.mVideoTrackIndex,
+                videoOutputFormat,
+                queuedMuxer,
+                outputSurfaceFactory,
+                mPlaybackSpeed,
+                mStartMs,
+                mEndMs,
+                120f);
         mVideoTrackTranscoder.setup();
         mExtractor.selectTrack(trackResult.mVideoTrackIndex);
     }

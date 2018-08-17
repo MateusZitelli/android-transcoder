@@ -18,7 +18,6 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
-import android.util.Log;
 
 import net.ypresto.androidtranscoder.compat.MediaCodecListCompat;
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
@@ -56,7 +55,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private long mStartUs;
     private long mEndUs;
     private boolean mEndReached;
-    private float maxFrameRate = 120;
+    private float mMaxFrameRate;
     private long lastPresentationTime = -1;
 
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
@@ -64,7 +63,8 @@ public class VideoTrackTranscoder implements TrackTranscoder {
                                 OutputSurfaceFactory outputSurfaceFactory,
                                 double playbackRate,
                                 Long startMs,
-                                Long endMs) {
+                                Long endMs,
+                                Float maxFrameRate) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
@@ -74,6 +74,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mStartUs = startMs * 1000;
         mEndUs = endMs * 1000;
         mEndReached = false;
+        mMaxFrameRate = maxFrameRate;
     }
 
     @Override
@@ -211,7 +212,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         boolean doRender = (mBufferInfo.size > 0 && mBufferInfo.presentationTimeUs >= mStartUs);
         if(lastPresentationTime >= 0)
             doRender = doRender && 1e9 / (mBufferInfo.presentationTimeUs *
-                    mTimeCorrectionFactor - lastPresentationTime) <= maxFrameRate;
+                    mTimeCorrectionFactor - lastPresentationTime) <= mMaxFrameRate;
         // NOTE: doRender will block if buffer (of encoder) is full.
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
