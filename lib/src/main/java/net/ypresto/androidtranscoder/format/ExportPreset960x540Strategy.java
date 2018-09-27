@@ -22,7 +22,7 @@ import android.util.Log;
 * Created by yuya.tanaka on 2014/11/20.
 */
 class ExportPreset960x540Strategy implements MediaFormatStrategy {
-    private static final String TAG = "ExportPreset960x540Strategy";
+    private static final String TAG = "ExportPreset960x540";
 
     @Override
     public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {

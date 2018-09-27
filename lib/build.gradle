@@ -1,19 +1,20 @@
 buildscript {
     repositories {
         jcenter()
+        google()
     }
     dependencies {
-        classpath 'com.novoda:bintray-release:0.8.0'
+        // The current version can be found here https://git.io/fNUnx
+        classpath "guru.stefma.bintrayrelease:bintrayrelease:1.0.0"
     }
 }
-
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'bintray-release'
+apply plugin: "guru.stefma.bintrayrelease"
 
 android {
     compileSdkVersion 27
-    buildToolsVersion '27.0.3'
+    buildToolsVersion '28.0.2'
 
     defaultConfig {
         minSdkVersion 18
@@ -30,18 +31,20 @@ android {
     }
 }
 
+group = 'net.ypresto.androidtranscoder'
 publish {
-    groupId = 'net.ypresto.androidtranscoder'
     artifactId = 'android-transcoder'
     version = '0.2.1'
+    desc = "android transcoder fork"
     licences = ['Apache-2.0']
     website = 'https://github.com/ypresto/android-transcoder'
     autoPublish = false
     dryRun = false
+    userOrg = "collect"
 }
 repositories {
     mavenCentral()
 }
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
