@@ -15,6 +15,8 @@
  */
 package net.ypresto.androidtranscoder.engine;
 
+import android.media.MediaCodecInfo;
+import android.media.MediaCodecList;
 import android.media.MediaFormat;
 
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
@@ -26,7 +28,7 @@ class MediaFormatValidator {
         // Refer: http://developer.android.com/guide/appendix/media-formats.html#core
         // Refer: http://en.wikipedia.org/wiki/MPEG-4_Part_14#Data_streams
         if (!MediaFormatExtraConstants.MIMETYPE_VIDEO_AVC.equals(mime)) {
-            throw new InvalidOutputFormatException("Video codecs other than AVC is not supported, actual mime type: " + mime);
+            //throw new InvalidOutputFormatException("Video codecs other than AVC is not supported, actual mime type: " + mime);
         }
     }
 

@@ -15,6 +15,7 @@
  */
 package net.ypresto.androidtranscoder.engine;
 
+import android.media.MediaCodecList;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
