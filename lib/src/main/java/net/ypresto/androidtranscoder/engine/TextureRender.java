@@ -143,10 +143,10 @@ class TextureRender {
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mTextureID);
         checkGlError("glBindTexture mTextureID");
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER,
-                GLES20.GL_LINEAR);
+                GLES20.GL_NEAREST);
         checkGlError("glTexParameter");
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER,
-                GLES20.GL_LINEAR);
+                GLES20.GL_NEAREST);
         checkGlError("glTexParameter");
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S,
                 GLES20.GL_CLAMP_TO_EDGE);
